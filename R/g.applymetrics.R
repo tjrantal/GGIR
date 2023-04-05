@@ -363,52 +363,61 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
     allmetrics$NeishabouriCount_vm = mycounts[, 4]
   }
   #Osteogenic index (OI)
-  if (do.osteogenicindex){
-	#Prepare histogram bins for osteogenic index calculation
-	 oiBinBreaks = c(peakThreshold)
-	 while (tail(oiBinBreaks,n=1) < 4.29){
-		 oiBinBreaks = c(oiBinBreaks, tail(oiBinBreaks,n=1)+0.2)
-	 }
-	 while (tail(oiBinBreaks,n=1) < 6.69){
-		 oiBinBreaks = c(oiBinBreaks, tail(oiBinBreaks,n=1)+0.3)
-	 }
-	 while (tail(oiBinBreaks,n=1) < 8.29){
-		 oiBinBreaks = c(oiBinBreaks, tail(oiBinBreaks,n=1)+0.4)
-	 }
-	 while (tail(oiBinBreaks,n=1) < 10.29){
-		 oiBinBreaks = c(oiBinBreaks, tail(oiBinBreaks,n=1)+0.5)
-	 }
-	oiBinBreaks = c(oiBinBreaks, Inf) #Final bin thresholds (or breaks)
-	binNames = sprintf('Bin >= %.1f to < %.1f',oiBinBreaks[1:length(oiBinBreaks)-1],tail(oiBinBreaks,n=length(oiBinBreaks)-1)) #Names for the histogram bins
-  
-	resultant = EuclideanNorm(data)	#OI is calculated on the resultant magnitude
-	initIndices = round(seq(1,length(resultant),by = sf*epochsize)) #Indices of the starts of the epochs
-	#OI histogram bins. Our in-house implementation bins (used in e.g. https://doi.org/10.1016/j.bone.2020.115704) from Ahola and colleagues J. Biomech., 43 (10) (2010), pp. 1960-1964
-	peakThreshold = 1.3;	#Peaks higher than 1.3 g are counted
-	peakIndices = which(resultant >=peakThreshold)	#Get indices of values peaks above the threshold
-	if (length(peakIndices) > 0){
-	
-		diffPeakIndices = diff(peakIndices)	#Find the difference from index to the next one
-		diffIndices = which(diffPeakIndices > 1); #Finds gaps between values above the threshold (i.e. the inits and ends of continuous peaks)
-		if (length(diffIndices) > 0){ #Indices of the inits and ends of peaks	
-			inits = peakIndices[c(1, diffIndices+1)]
-			ends = peakIndices[c(diffIndices, length(peakIndices))];
-		}else{	#No gaps were found so it is just the one peak
-			inits = peakIndices(1);
-			ends = tail(peakIndices,n=1);
-		}
-		getMax<-function(x) {c(max(resultant[inits[x]:ends[x]]),which.max(resultant[inits[x]:ends[x]])+inits[x]-1)}	#Function to get the max value of the peak and corresponding index
-		peakMagnitudes = t(sapply(seq(1,length(inits)),getMax,simplify="array"))	#Use the max and index function on all of the peaks
+  print('Osteogenic Index')
+	tryCatch({
+	  print(do.osteogenicindex)
+	  if (do.osteogenicindex == TRUE){
+		#Prepare histogram bins for osteogenic index calculation
+		peakThreshold = 1.3;	#Peaks higher than 1.3 g are counted
+		 oiBinBreaks = c(peakThreshold)
+		 while (tail(oiBinBreaks,n=1) < 4.29){
+			 oiBinBreaks = c(oiBinBreaks, tail(oiBinBreaks,n=1)+0.2)
+		 }
+		 while (tail(oiBinBreaks,n=1) < 6.69){
+			 oiBinBreaks = c(oiBinBreaks, tail(oiBinBreaks,n=1)+0.3)
+		 }
+		 while (tail(oiBinBreaks,n=1) < 8.29){
+			 oiBinBreaks = c(oiBinBreaks, tail(oiBinBreaks,n=1)+0.4)
+		 }
+		 while (tail(oiBinBreaks,n=1) < 10.29){
+			 oiBinBreaks = c(oiBinBreaks, tail(oiBinBreaks,n=1)+0.5)
+		 }
+		oiBinBreaks = c(oiBinBreaks, Inf) #Final bin thresholds (or breaks)
+		binNames = sprintf('Bin >= %.1f to < %.1f',oiBinBreaks[1:length(oiBinBreaks)-1],tail(oiBinBreaks,n=length(oiBinBreaks)-1)) #Names for the histogram bins
+
+		resultant = EuclideanNorm(data)	#OI is calculated on the resultant magnitude
+		initIndices = round(seq(1,length(resultant),by = sf*epochsize)) #Indices of the starts of the epochs
+		#OI histogram bins. Our in-house implementation bins (used in e.g. https://doi.org/10.1016/j.bone.2020.115704) from Ahola and colleagues J. Biomech., 43 (10) (2010), pp. 1960-1964
 		
-		#Pop the peaks into histograms per epoch
-		getHist <- function(index) hist(peakMagnitudes[which(peakMagnitudes[,2] >=index & peakMagnitudes[,2] < round(index+sf*epochsize)),1], breaks = oiBinBreaks,include.lowest = TRUE, right = FALSE, fuzz = 1e-7, plot = FALSE)$counts	#Function to return the histogram counts
-		oiHist = t(sapply(initIndices,getHist,simplify="array"))	#Get the histogram counts epoch-wise
-	}else{
-		#No peaks found, return NA histograms
-		oiHist = matrix(nrow = length(initIndices), ncol = length(oiBinBreaks)-1, dimnames = list(NULL,binNames))
+		peakIndices = which(resultant >=peakThreshold)	#Get indices of values peaks above the threshold
+		if (length(peakIndices) > 0){
+		
+			diffPeakIndices = diff(peakIndices)	#Find the difference from index to the next one
+			diffIndices = which(diffPeakIndices > 1); #Finds gaps between values above the threshold (i.e. the inits and ends of continuous peaks)
+			if (length(diffIndices) > 0){ #Indices of the inits and ends of peaks	
+				inits = peakIndices[c(1, diffIndices+1)]
+				ends = peakIndices[c(diffIndices, length(peakIndices))];
+			}else{	#No gaps were found so it is just the one peak
+				inits = peakIndices(1);
+				ends = tail(peakIndices,n=1);
+			}
+			getMax<-function(x) {c(max(resultant[inits[x]:ends[x]]),which.max(resultant[inits[x]:ends[x]])+inits[x]-1)}	#Function to get the max value of the peak and corresponding index
+			peakMagnitudes = t(sapply(seq(1,length(inits)),getMax,simplify="array"))	#Use the max and index function on all of the peaks
+			
+			#Pop the peaks into histograms per epoch
+			getHist <- function(index) hist(peakMagnitudes[which(peakMagnitudes[,2] >=index & peakMagnitudes[,2] < round(index+sf*epochsize)),1], breaks = oiBinBreaks,include.lowest = TRUE, right = FALSE, fuzz = 1e-7, plot = FALSE)$counts	#Function to return the histogram counts
+			oiHist = t(sapply(initIndices,getHist,simplify="array"))	#Get the histogram counts epoch-wise
+		}else{
+			#No peaks found, return NA histograms
+			oiHist = matrix(nrow = length(initIndices), ncol = length(oiBinBreaks)-1, dimnames = list(NULL,binNames))
+		}
+		colnames(oiHist) = binNames #Add the header to the matrix
+		allmetrics$osteogenicIndex_histogram = oiHist
+	  }
+	}, error = function(cond){
+		print('OI failed')
+		message(cond)
 	}
-	colnames(oiHist) = binNames #Add the header to the matrix
-	allmetrics$osteogenicIndex_histogram = oiHist
-  }
+  )
   return(allmetrics)
 } 
