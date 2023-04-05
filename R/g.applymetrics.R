@@ -363,6 +363,10 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
     allmetrics$NeishabouriCount_vm = mycounts[, 4]
   }
   #Osteogenic index (OI)
+  if (!exists("do.osteogenicindex") == TRUE){
+	do.osteogenicindex = FALSE
+  }
+  
   if (do.osteogenicindex == TRUE){
 	#Prepare histogram bins for osteogenic index calculation
 	peakThreshold = 1.3;	#Peaks higher than 1.3 g are counted
