@@ -330,7 +330,7 @@ g.part1 = function(datadir = c(), outputdir = c(), f0 = 1, f1 = c(),
                     meantempcal = C$meantempcal,
                     outputdir = outputdir,
                     outputfolder = outputfolder,
-                    myfun = myfun, 
+                    myfun = myfun,
                     verbose = verbose)
 
       if (!is.null(params_general[["recordingEndSleepHour"]])) {
@@ -485,7 +485,7 @@ g.part1 = function(datadir = c(), outputdir = c(), f0 = 1, f1 = c(),
                                                 "do.bfen", "do.hfen", "do.hfenplus", "do.lfen",
                                                 "do.lfx", "do.lfy", "do.lfz", "do.hfx", "do.hfy", "do.hfz",
                                                 "do.bfx", "do.bfy", "do.bfz", "do.brondcounts",
-                                                "do.neishabouricounts")]))
+                                                "do.neishabouricounts", "do.osteogenicindex")]))
     if (Nmetrics2calc > 4) { #Only give warning when user wants more than 4 metrics.
       warning(paste0("\nExtracting many metrics puts higher demands on memory. Please consider",
                      " reducing the value for argument chunksize or setting do.parallel to FALSE"))
