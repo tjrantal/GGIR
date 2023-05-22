@@ -1,7 +1,7 @@
 g.applymetrics = function(data, sf, ws3, metrics2do,
                           n = 4, lb = 0.2, hb = 15,
                           zc.lb = 0.25, zc.hb = 3, zc.sb = 0.01,
-                          zc.order = 2, 
+                          zc.order = 2,
                           actilife_LFE = FALSE){
   epochsize = ws3 #epochsize in seconds
   # data is a 3 column matrix with the x, y, and z acceleration
@@ -49,7 +49,7 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
     select = seq(1,length(x2), by = sf*epochsize)
     x3 = diff(x2[round(select)])
   }
-  
+
   if (sf <= (hb * 2)) { #avoid having a higher filter boundary higher than sf/2
     hb = round(sf/2) - 1
   }
@@ -168,18 +168,18 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
     }
   }
   if (do.zcx == TRUE | do.zcy == TRUE | do.zcz == TRUE) { # Zero crossing count
-    
+
     # 1) apply band-pass frequency filter to mimic old-sensor
     # 0.25 - 3 Hertz to be in line with Ancoli Isreal's paper from 2003,
     # and online "Motionlogger Users Guide Version 2K1.1" from Ambulatory Monitoring,
     # Inc. Ardsley, New York 10502
     # Be aware that specific boundaries differ between Actigraph brands that copied the
     # Sadeh algorithm.
-    # We use a second order filter because if it was an analog filter it was 
+    # We use a second order filter because if it was an analog filter it was
     # most likely not very steep filter.
     data_processed = process_axes(data, filtertype = "pass", cut_point = c(zc.lb, zc.hb), n = zc.order, sf)
     zil = c()
-    
+
     # 2) Sadeh reported to have used the y-axis but did not specify the orientation of
     # the y-axis in their accelerometer. Therefore, we keep selection of axis flexible for the user
     if (do.zcx == TRUE) zil = 1
@@ -188,7 +188,7 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
     Ndat = nrow(data_processed)
     for (zi in zil) { # loop over axes
       # 3) apply stop-band to minic sensitivity of 1980s and 1990s accelerometer
-      # technology. Using a 0.01g threshold based on book by Tyron 
+      # technology. Using a 0.01g threshold based on book by Tyron
       # "Activity Measurementy in Psychology And Medicine"
       smallvalues = which(abs(data_processed[,zi]) < zc.sb)
       if (length(smallvalues) > 0) {
@@ -213,7 +213,7 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
         allmetrics$ZCZ = sumPerEpoch(zerocross(data_processed[,zi], Ndat), sf, epochsize)
       }
     }
-    
+
     # Note that this is per epoch, in GGIR part 3 we aggregate (sum) this per minute
     # to follow Sadeh. In Sadeh 1987 this resulted in values up to 280
     # 280 = 60 x 2 x frequency of movement which would mean near 2.33 Hertz average
@@ -258,7 +258,7 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
   }
   #================================================
   # Combined low-pass and high-pass filtering metric:)
-  if (do.hfenplus == TRUE) { 
+  if (do.hfenplus == TRUE) {
     # Note that we are using intentionally the lower boundary for the low pass filter
     data_processed = process_axes(data, filtertype = "low", cut_point = lb, n, sf)
     GCP = EuclideanNorm(data_processed) - gravity
@@ -271,7 +271,7 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
   #================================================
   # Rolling median filter related metrics:
   roll_median_done  = FALSE
-  if (do.roll_med_acc_x == TRUE | do.roll_med_acc_y == TRUE | do.roll_med_acc_z == TRUE | 
+  if (do.roll_med_acc_x == TRUE | do.roll_med_acc_y == TRUE | do.roll_med_acc_z == TRUE |
       do.dev_roll_med_acc_x == TRUE | do.dev_roll_med_acc_y == TRUE | do.dev_roll_med_acc_z == TRUE) {
     data_processed = process_axes(data, filtertype = "rollmedian", cut_point = c(), n, sf)
     roll_median_done  = TRUE
@@ -287,7 +287,7 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
     }
   }
   if (do.anglex == TRUE | do.angley == TRUE | do.anglez == TRUE) {
-    if (roll_median_done == FALSE) { 
+    if (roll_median_done == FALSE) {
       data_processed = process_axes(data, filtertype = "rollmedian", cut_point = c(), n, sf)
     }
     if (do.anglex == TRUE) {
@@ -327,7 +327,7 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
                 "following issues with the activityCounts package. We will reinsert brondcounts ",
                 "once the issues are resolved."), call. = FALSE)
     # if (ncol(data) > 3) data = data[,2:4]
-    # mycounts = activityCounts::counts(data = data, hertz = sf, 
+    # mycounts = activityCounts::counts(data = data, hertz = sf,
     #                                   x_axis = 1, y_axis = 2, z_axis = 3,
     #                                   start_time = Sys.time()) # ignoring timestamps, because GGIR has its own timestamps
     # if (sf < 30) {
@@ -343,8 +343,8 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
   # Actilife Counts)
   if (do.neishabouricounts == TRUE) {
     # I do not include actilifecounts as dependency to avoid overwritten methods
-    # message from package signal (this package has not well defined the source 
-    # package of their functions and we get an inoffensive but unwanted message 
+    # message from package signal (this package has not well defined the source
+    # package of their functions and we get an inoffensive but unwanted message
     # printed in the console).
     # I followed suggestion in: https://bit.ly/3SaP69u
     suppressMessages(requireNamespace("actilifecounts"))
@@ -366,7 +366,7 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
   if (!exists("do.osteogenicindex") == TRUE){
 	do.osteogenicindex = FALSE
   }
-  
+
   if (do.osteogenicindex == TRUE){
 	#Prepare histogram bins for osteogenic index calculation
 	peakThreshold = 1.3;	#Peaks higher than 1.3 g are counted
@@ -384,18 +384,18 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
 		 oiBinBreaks = c(oiBinBreaks, tail(oiBinBreaks,n=1)+0.5)
 	 }
 	oiBinBreaks = c(oiBinBreaks, Inf) #Final bin thresholds (or breaks)
-	binNames = sprintf('Bin >= %.1f to < %.1f',oiBinBreaks[1:length(oiBinBreaks)-1],tail(oiBinBreaks,n=length(oiBinBreaks)-1)) #Names for the histogram bins
+	binNames = sprintf('[%.1f, %.1f)',oiBinBreaks[1:length(oiBinBreaks)-1],tail(oiBinBreaks,n=length(oiBinBreaks)-1)) #Names for the histogram bins
 
 	resultant = EuclideanNorm(data)	#OI is calculated on the resultant magnitude
 	initIndices = round(seq(1,length(resultant),by = sf*epochsize)) #Indices of the starts of the epochs
 	#OI histogram bins. Our in-house implementation bins (used in e.g. https://doi.org/10.1016/j.bone.2020.115704) from Ahola and colleagues J. Biomech., 43 (10) (2010), pp. 1960-1964
-	
+
 	peakIndices = which(resultant >=peakThreshold)	#Get indices of values peaks above the threshold
 	if (length(peakIndices) > 0){
-	
+
 		diffPeakIndices = diff(peakIndices)	#Find the difference from index to the next one
 		diffIndices = which(diffPeakIndices > 1); #Finds gaps between values above the threshold (i.e. the inits and ends of continuous peaks)
-		if (length(diffIndices) > 0){ #Indices of the inits and ends of peaks	
+		if (length(diffIndices) > 0){ #Indices of the inits and ends of peaks
 			inits = peakIndices[c(1, diffIndices+1)]
 			ends = peakIndices[c(diffIndices, length(peakIndices))];
 		}else{	#No gaps were found so it is just the one peak
@@ -404,7 +404,7 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
 		}
 		getMax<-function(x) {c(max(resultant[inits[x]:ends[x]]),which.max(resultant[inits[x]:ends[x]])+inits[x]-1)}	#Function to get the max value of the peak and corresponding index
 		peakMagnitudes = t(sapply(seq(1,length(inits)),getMax,simplify="array"))	#Use the max and index function on all of the peaks
-		
+
 		#Pop the peaks into histograms per epoch
 		getHist <- function(index) hist(peakMagnitudes[which(peakMagnitudes[,2] >=index & peakMagnitudes[,2] < round(index+sf*epochsize)),1], breaks = oiBinBreaks,include.lowest = TRUE, right = FALSE, fuzz = 1e-7, plot = FALSE)$counts	#Function to return the histogram counts
 		oiHist = t(sapply(initIndices,getHist,simplify="array"))	#Get the histogram counts epoch-wise
@@ -412,8 +412,9 @@ g.applymetrics = function(data, sf, ws3, metrics2do,
 		#No peaks found, return NA histograms
 		oiHist = matrix(nrow = length(initIndices), ncol = length(oiBinBreaks)-1, dimnames = list(NULL,binNames))
 	}
-	colnames(oiHist) = binNames #Add the header to the matrix
-	allmetrics$osteogenicIndex_histogram = oiHist
+	colnames(oiHist) = paste0("osteogenicindex_bin", binNames) #Add the header to the matrix
+	oiHist = as.list(as.data.frame(oiHist)) # turn to list
+	allmetrics = c(allmetrics, oiHist)      # now counts in every bin are new elements in the list (consistent with other metrics)
   }
   return(allmetrics)
-} 
+}

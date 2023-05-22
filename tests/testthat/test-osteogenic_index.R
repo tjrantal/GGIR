@@ -15,13 +15,12 @@ test_that("Osteogenic index peak detection works", {
 	data[,1] = 1.4*sin(2*pi*sineFreq*t)
 	data[,2] = 0
 	data[,3] = 0
-	
-  
-  temp = g.applymetrics(data, sf, epochsize, metrics2do)
-  output = temp$osteogenicIndex_histogram
-  
-  expect_that(ncol(output),equals(32))
-  expect_that(nrow(output),equals(length(t)/(epochsize*sf)))
-  expect_that(sum(output[,1]),equals((length(t)/sf)*(2*sineFreq)))
+
+
+	output = g.applymetrics(data, sf, epochsize, metrics2do)
+
+  expect_that(length(output), equals(32))
+  expect_that(length(output[[1]]), equals(length(t)/(epochsize*sf)))
+  expect_that(sum(output[[1]]),equals((length(t)/sf)*(2*sineFreq)))
 })
 

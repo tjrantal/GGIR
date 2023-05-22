@@ -92,7 +92,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
                    params_metrics[["do.zcx"]], params_metrics[["do.zcy"]],
                    params_metrics[["do.zcz"]], params_metrics[["do.brondcounts"]] * 3,
                    params_metrics[["do.neishabouricounts"]] * 4,
-                   params_metrics[["do.osteogenicindex"]]))
+                   params_metrics[["do.osteogenicindex"]] * 32))
   if (length(myfun) != 0) {
     nmetrics = nmetrics + length(myfun$colnames)
     # check myfun object already, because we do not want to discover
@@ -504,7 +504,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
         # round decimal places, because due to averaging we get a lot of information
         # that only slows down computation and increases storage size
         accmetrics = lapply(accmetrics, round, n_decimal_places)
-        accmetrics = data.frame(sapply(accmetrics,c)) # collapse to data.frame
+        accmetrics = data.frame(sapply(accmetrics,c), check.names = FALSE) # collapse to data.frame
         # update LD in case data has been imputed at epoch level
         if (floor(LD / (ws3 * sf)) < nrow(accmetrics)) { # then, data has been imputed
           LD = nrow(accmetrics) * ws3 * sf
@@ -539,7 +539,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
         }
         col_msi = 2
         # Add metric time series to metashort object
-        metnames = grep(pattern = "BrondCount|NeishabouriCount", x = names(accmetrics), invert = TRUE, value = TRUE)
+        metnames = grep(pattern = "BrondCount|NeishabouriCount|osteogenic", x = names(accmetrics), invert = TRUE, value = TRUE)
         for (metnam in metnames) {
           dovalue = paste0("do.",tolower(metnam))
           dovalue = gsub(pattern = "angle_", replacement = "angle", x = dovalue)
@@ -560,8 +560,17 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
           metashort[count:(count - 1 + length(accmetrics$NeishabouriCount_y)), col_msi + 1] = accmetrics$NeishabouriCount_y
           metashort[count:(count - 1 + length(accmetrics$NeishabouriCount_z)), col_msi + 2] = accmetrics$NeishabouriCount_z
           metashort[count:(count - 1 + length(accmetrics$NeishabouriCount_vm)), col_msi + 3] = accmetrics$NeishabouriCount_vm
-          col_msi = col_msi + 3
+          col_msi = col_msi + 4
           metnames = c(metnames, "NeishabouriCount_x", "NeishabouriCount_y", "NeishabouriCount_z", "NeishabouriCount_vm")
+        }
+        if (params_metrics[["do.osteogenicindex"]] == TRUE) {
+          # there are 32 columns with the bins of the histogram
+          osteo_columns = grep("^osteo", colnames(accmetrics))
+          for (osteo_col in 1:length(osteo_columns)) {
+            metashort[count:(count - 1 + nrow(accmetrics)), col_msi] = accmetrics[, osteo_columns[osteo_col]]
+            col_msi = col_msi + 1
+          }
+          metnames = c(metnames, grep("^osteo", colnames(accmetrics), value = TRUE))
         }
         metnames = gsub(pattern = "angle_", replacement = "angle", x = metnames)
         if (length(myfun) != 0) { # if an external function is applied.
