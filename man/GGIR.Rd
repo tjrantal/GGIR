@@ -652,6 +652,10 @@ GGIR(mode = \Sexpr{format(formals(GGIR::GGIR)[["mode"]])},
         the \code{acc.metric} argument needs to be set as one of the following: "NeishabouriCount_x", 
         "NeishabouriCount_y", "NeishabouriCount_z", "NeishabouriCount_vm" to use the counts in the x-, 
         y-, z-axis or vector magnitude, respectively.}
+		
+	   \item{do.osteogenicindex}{
+        Boolean (default = \Sexpr{format(GGIR::load_params()[["params_metrics"]][["do.osteogenicindex"]])}).
+        If TRUE, identifies continuous peaks above 1.3 g in the resultant magnitude acceleration. The peaks are split into a 32 bin histogram ragning from 1.3 g to > 10.3g. The peaks are intended to be summarised per day/hour/interesting epoch as an osteogenic index.}
 
       \item{lb}{
         Numeric (default = \Sexpr{format(GGIR::load_params()[["params_metrics"]][["lb"]])}).

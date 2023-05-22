@@ -47,7 +47,7 @@ check_params = function(params_sleep = c(), params_metrics = c(),
                        "do.dev_roll_med_acc_x", "do.dev_roll_med_acc_y", "do.dev_roll_med_acc_z", 
                        "do.bfen", "do.hfen", "do.hfenplus", "do.lfen", 
                        "do.lfx", "do.lfy", "do.lfz", "do.hfx", "do.hfy", "do.hfz",
-                       "do.bfx", "do.bfy", "do.bfz", "do.brondcounts")
+                       "do.bfx", "do.bfy", "do.bfz", "do.brondcounts", "do.osteogenicindex")
     check_class("Metrics", params = params_metrics, parnames = boolean_params, parclass = "boolean")
     check_class("Metrics", params = params_metrics, parnames = c("hb", "lb", "n", "zc.lb", "zc.hb", 
                                                                  "zc.sb", "zc.order", "zc.scale"), parclass = "numeric")
