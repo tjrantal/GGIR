@@ -1,14 +1,14 @@
 g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
-                     params_general = c(), daylimit = FALSE, 
+                     params_general = c(), daylimit = FALSE,
                      offset = c(0, 0, 0), scale = c(1, 1, 1), tempoffset = c(0, 0, 0),
-                     meantempcal = c(), myfun = c(), ...) {
-  
+                     meantempcal = c(), myfun = c(), verbose = TRUE, ...) {
+
   #get input variables
   input = list(...)
-  expectedArgs = c("datafile", "params_metrics", 
+  expectedArgs = c("datafile", "params_metrics",
                    "params_rawdata", "params_general",
-                   "daylimit", "offset", 
-                   "scale", "tempoffset", "meantempcal", 
+                   "daylimit", "offset",
+                   "scale", "tempoffset", "meantempcal",
                    "myfun", "outputdir", "outputfolder")
   if (any(names(input) %in% expectedArgs == FALSE) |
       any(!unlist(lapply(expectedArgs, FUN = exists)))) {
@@ -35,7 +35,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
   }
   if (length(which(ls() == "outputdir")) != 0) outputdir = input$outputdir
   if (length(which(ls() == "outputfolder")) != 0) outputfolder = input$outputfolder
-  
+
   metrics2do = data.frame(do.bfen = params_metrics[["do.bfen"]],
                           do.enmo = params_metrics[["do.enmo"]],
                           do.lfenmo = params_metrics[["do.lfenmo"]],
@@ -52,7 +52,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
                           do.dev_roll_med_acc_x = params_metrics[["do.dev_roll_med_acc_x"]],
                           do.dev_roll_med_acc_y = params_metrics[["do.dev_roll_med_acc_y"]],
                           do.dev_roll_med_acc_z = params_metrics[["do.dev_roll_med_acc_z"]],
-                          do.enmoa = params_metrics[["do.enmoa"]], 
+                          do.enmoa = params_metrics[["do.enmoa"]],
                           do.lfen = params_metrics[["do.lfen"]],
                           do.lfx = params_metrics[["do.lfx"]],
                           do.lfy = params_metrics[["do.lfy"]],
@@ -68,6 +68,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
                           do.zcz = params_metrics[["do.zcz"]],
                           do.brondcounts = params_metrics[["do.brondcounts"]],
                           do.neishabouricounts = params_metrics[["do.neishabouricounts"]],
+                          do.osteogenicindex = params_metrics[["do.osteogenicindex"]],
                           stringsAsFactors = TRUE)
   if (length(params_rawdata[["chunksize"]]) == 0) params_rawdata[["chunksize"]] = 1
   if (params_rawdata[["chunksize"]] > 1.5) params_rawdata[["chunksize"]] = 1.5
@@ -78,28 +79,29 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
                    params_metrics[["do.hfen"]], params_metrics[["do.hfenplus"]],
                    params_metrics[["do.mad"]], params_metrics[["do.anglex"]],
                    params_metrics[["do.angley"]], params_metrics[["do.anglez"]],
-                   params_metrics[["do.roll_med_acc_x"]], params_metrics[["do.roll_med_acc_y"]], 
+                   params_metrics[["do.roll_med_acc_x"]], params_metrics[["do.roll_med_acc_y"]],
                    params_metrics[["do.roll_med_acc_z"]],
-                   params_metrics[["do.dev_roll_med_acc_x"]], params_metrics[["do.dev_roll_med_acc_y"]], 
+                   params_metrics[["do.dev_roll_med_acc_x"]], params_metrics[["do.dev_roll_med_acc_y"]],
                    params_metrics[["do.dev_roll_med_acc_z"]],
                    params_metrics[["do.enmoa"]], params_metrics[["do.lfen"]],
-                   params_metrics[["do.lfx"]], params_metrics[["do.lfy"]], 
-                   params_metrics[["do.lfz"]],  params_metrics[["do.hfx"]], 
-                   params_metrics[["do.hfy"]], params_metrics[["do.hfz"]], 
+                   params_metrics[["do.lfx"]], params_metrics[["do.lfy"]],
+                   params_metrics[["do.lfz"]],  params_metrics[["do.hfx"]],
+                   params_metrics[["do.hfy"]], params_metrics[["do.hfz"]],
                    params_metrics[["do.bfx"]], params_metrics[["do.bfy"]],
                    params_metrics[["do.bfz"]],
                    params_metrics[["do.zcx"]], params_metrics[["do.zcy"]],
                    params_metrics[["do.zcz"]], params_metrics[["do.brondcounts"]] * 3,
-                   params_metrics[["do.neishabouricounts"]] * 4))
+                   params_metrics[["do.neishabouricounts"]] * 4,
+                   params_metrics[["do.osteogenicindex"]] * 32))
   if (length(myfun) != 0) {
     nmetrics = nmetrics + length(myfun$colnames)
     # check myfun object already, because we do not want to discover
     # bugs after waiting for the data to be load
     check_myfun(myfun, params_general[["windowsizes"]])
   }
-  
+
   if (length(nmetrics) == 0) {
-    cat("\nWARNING: No metrics selected\n")
+    if (verbose == TRUE) cat("\nWARNING: No metrics selected\n")
   }
   filename = unlist(strsplit(as.character(datafile),"/"))
   filename = filename[length(filename)]
@@ -107,19 +109,23 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
   ws3 = params_general[["windowsizes"]][1]; ws2 = params_general[["windowsizes"]][2]; ws = params_general[["windowsizes"]][3]  #window sizes
   if ((ws2/60) != round(ws2/60)) {
     ws2 = as.numeric(60 * ceiling(ws2/60))
-    cat("\nWARNING: The long windowsize needs to be a multitude of 1 minute periods. The\n")
-    cat(paste0("\nlong windowsize has now been automatically adjusted to: ", ws2, " seconds in order to meet this criteria.\n"))
+    if (verbose == TRUE) {
+      cat("\nWARNING: The long windowsize needs to be a multitude of 1 minute periods. The\n")
+      cat(paste0("\nlong windowsize has now been automatically adjusted to: ", ws2, " seconds in order to meet this criteria.\n"))
+    }
   }
   if ((ws2/ws3) != round(ws2/ws3)) {
     def = c(1,5,10,15,20,30,60)
     def2 = abs(def - ws3)
     ws3 = as.numeric(def[which(def2 == min(def2))])
-    cat("\nWARNING: The long windowsize needs to be a multitude of short windowsize. The \n")
-    cat(paste0("\nshort windowsize has now been automatically adjusted to: ", ws3, " seconds in order to meet this criteria.\n"))
+    if (verbose == TRUE) {
+      cat("\nWARNING: The long windowsize needs to be a multitude of short windowsize. The \n")
+      cat(paste0("\nshort windowsize has now been automatically adjusted to: ", ws3, " seconds in order to meet this criteria.\n"))
+    }
   }
   params_general[["windowsizes"]] = c(ws3,ws2,ws)
   data = PreviousEndPage = PreviousStartPage = starttime = wday = weekdays = wdayname = c()
-  
+
   monnames = c("genea", "geneactive", "actigraph", "axivity", "movisens", "verisense") #monitor names
   filequality = data.frame(filetooshort = FALSE, filecorrupt = FALSE,
                            filedoesnotholdday = FALSE, NFilePagesSkipped = 0, stringsAsFactors = TRUE)
@@ -172,7 +178,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
                       loadGENEActiv  = params_rawdata[["loadGENEActiv"]])
   options(warn = 0)
   ID = hvars$ID
-  
+
   # get now-wear, clip, and blocksize parameters (thresholds)
   ncb_params = get_nw_clip_block_params(chunksize = params_rawdata[["chunksize"]],
                                         dynrange = params_rawdata[["dynrange"]],
@@ -209,13 +215,16 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
   sforiginal = sf
   while (LD > 1) {
     P = c()
-    if (i  == 1) {
-      cat(paste0("\nLoading chunk: ", i))
-    } else {
-      cat(paste0(" ", i))
+    if (verbose == TRUE) {
+      if (i  == 1) {
+        cat(paste0("\nLoading chunk: ", i))
+      } else {
+        cat(paste0(" ", i))
+      }
     }
+
     options(warn = -1) #turn off warnings (code complains about unequal rowlengths
-    
+
     if (!exists("PreviousLastValue")) PreviousLastValue = c(0, 0, 1)
     if (!exists("PreviousLastTime")) PreviousLastTime = NULL
     accread = g.readaccfile(filename = datafile, blocksize = blocksize, blocknumber = i,
@@ -225,7 +234,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
                             PreviousLastValue = PreviousLastValue,
                             PreviousLastTime = PreviousLastTime,
                             params_rawdata = params_rawdata, params_general = params_general)
-    if ("PreviousLastValue" %in% names(accread$P)) { # output when reading ad-hoc csv 
+    if ("PreviousLastValue" %in% names(accread$P)) { # output when reading ad-hoc csv
       P = accread$P[1:2]
       PreviousLastValue = accread$P$PreviousLastValue
       PreviousLastTime = accread$P$PreviousLastTime
@@ -254,7 +263,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
     #============
     #process data as read from binary file
     if (length(P) > 0) { #would have been set to zero if file was corrupt or empty
-      
+
       if (mon == 1 & dformat == 1) { # GENEA bin
         data = P$rawxyz / 1000 #convert mg output to g for genea
       } else if (mon == 2  & dformat == 1) { # GENEActiv bin
@@ -271,9 +280,9 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
           }
           if (!exists("PreviousLastValue")) PreviousLastValue = c(0, 0, 1)
           if (!exists("PreviousLastTime")) PreviousLastTime = NULL
-          P = g.imputeTimegaps(P, xyzCol = xyzCol, timeCol = timeCol, sf = sf, k = 0.25, 
+          P = g.imputeTimegaps(P, xyzCol = xyzCol, timeCol = timeCol, sf = sf, k = 0.25,
                                PreviousLastValue = PreviousLastValue,
-                               PreviousLastTime = PreviousLastTime, 
+                               PreviousLastTime = PreviousLastTime,
                                epochsize = c(ws3, ws2))
           PreviousLastValue = as.numeric(P[nrow(P), xyzCol])
           if (is.null(timeCol)) PreviousLastTime = NULL else PreviousLastTime = as.POSIXct(P[nrow(P), timeCol])
@@ -286,7 +295,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
           # GGIR now ignores the AX6 gyroscope signals until added value has robustly been demonstrated
           data = P$data[,-c(2:4)]
           P$data = P$data[1:min(100,nrow(P$data)),-c(2:4)] # trim object, because rest of data is not needed anymore
-          gyro_available = FALSE 
+          gyro_available = FALSE
           # If we ever want to use gyroscope data then
           # comment out this if statement and set gyro_available = TRUE
         } else {
@@ -301,9 +310,9 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
         if (params_rawdata[["imputeTimegaps"]] == TRUE) {
           if (!exists("PreviousLastValue")) PreviousLastValue = c(0, 0, 1)
           if (!exists("PreviousLastTime")) PreviousLastTime = NULL
-          P = g.imputeTimegaps(P, xyzCol = c("X", "Y", "Z"), timeCol = "time", sf = sf, k = 0.25, 
+          P = g.imputeTimegaps(P, xyzCol = c("X", "Y", "Z"), timeCol = "time", sf = sf, k = 0.25,
                                PreviousLastValue = PreviousLastValue,
-                               PreviousLastTime = PreviousLastTime, 
+                               PreviousLastTime = PreviousLastTime,
                                epochsize = c(ws3, ws2))
           PreviousLastValue = as.numeric(P[nrow(P), c("X", "Y", "Z")])
           PreviousLastTime = as.POSIXct(P[nrow(P), "time"])
@@ -331,7 +340,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
         data = suppressWarnings(rbind(S,data)) # suppress warnings about string as factor
       }
       SWMT = get_starttime_weekday_meantemp_truncdata(temp.available, mon, dformat,
-                                                      data, 
+                                                      data,
                                                       P, header, desiredtz = params_general[["desiredtz"]],
                                                       sf, i, datafile,  ws2,
                                                       starttime, wday, weekdays, wdayname, configtz = params_general[["configtz"]])
@@ -340,7 +349,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
       use.temp = SWMT$use.temp
       wday = SWMT$wday; weekdays = SWMT$SWMT$weekdays; wdayname = SWMT$wdayname
       params_general[["desiredtz"]] = SWMT$desiredtz; data = SWMT$data
-      
+
       if (mon == 1 | mon == 3 | mon == 6 | (mon == 4 & dformat == 3) | (mon == 4 & dformat == 2) | (mon == 0 & use.temp == FALSE)) {
         metricnames_long = c("timestamp","nonwearscore","clippingscore","en")
       } else if (mon == 2 | (mon == 4 & dformat == 4)  | (mon == 0 & use.temp == TRUE)) {
@@ -357,11 +366,11 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
         switchoffLD = 1
         LD = 0 #ignore rest of the data and store what has been loaded so far.
       }
-      
-      
+
+
       #store data that could not be used for this block, but will be added to next block
       if (LD >= (ws*sf)) {
-        
+
         use = (floor(LD / (ws2*sf))) * (ws2*sf) #number of datapoint to use # changes from ws to ws2 Vvh 23/4/2017
         if (length(myfun) != 0) { # if using external function, then check that use is a multitude of the expected windowlength
           Nminlength = use / myfun$minlength
@@ -479,9 +488,9 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
         sfold = sforiginal # keep sf, because light, temperature are not resampled at the moment
         # STORE THE RAW DATA
         # data[,1], data[,2], data[,3], starttime, (temperature, light)
-        
+
         EN = sqrt(data[,1]^2 + data[,2]^2 + data[,3]^2) # Do not delete Used for long epoch calculation
-        accmetrics = g.applymetrics(data = data, 
+        accmetrics = g.applymetrics(data = data,
                                     sf = sf, ws3 = ws3,
                                     metrics2do = metrics2do,
                                     n = params_metrics[["n"]],
@@ -495,7 +504,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
         # round decimal places, because due to averaging we get a lot of information
         # that only slows down computation and increases storage size
         accmetrics = lapply(accmetrics, round, n_decimal_places)
-        accmetrics = data.frame(sapply(accmetrics,c)) # collapse to data.frame
+        accmetrics = data.frame(sapply(accmetrics,c), check.names = FALSE) # collapse to data.frame
         # update LD in case data has been imputed at epoch level
         if (floor(LD / (ws3 * sf)) < nrow(accmetrics)) { # then, data has been imputed
           LD = nrow(accmetrics) * ws3 * sf
@@ -526,11 +535,11 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
           metashort = rbind(metashort,extension)
           extension2 = matrix(" ", ((3600/ws2) * 24)  + (totalgap * (ws2/ws3)), ncol(metalong)) #add another day to metashort once you reach the end of it
           metalong = rbind(metalong, extension2)
-          cat("\nvariable metashort extended\n")
+          if (verbose == TRUE) cat("\nvariable metashort extended\n")
         }
         col_msi = 2
         # Add metric time series to metashort object
-        metnames = grep(pattern = "BrondCount|NeishabouriCount", x = names(accmetrics), invert = TRUE, value = TRUE)
+        metnames = grep(pattern = "BrondCount|NeishabouriCount|osteogenic", x = names(accmetrics), invert = TRUE, value = TRUE)
         for (metnam in metnames) {
           dovalue = paste0("do.",tolower(metnam))
           dovalue = gsub(pattern = "angle_", replacement = "angle", x = dovalue)
@@ -551,15 +560,24 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
           metashort[count:(count - 1 + length(accmetrics$NeishabouriCount_y)), col_msi + 1] = accmetrics$NeishabouriCount_y
           metashort[count:(count - 1 + length(accmetrics$NeishabouriCount_z)), col_msi + 2] = accmetrics$NeishabouriCount_z
           metashort[count:(count - 1 + length(accmetrics$NeishabouriCount_vm)), col_msi + 3] = accmetrics$NeishabouriCount_vm
-          col_msi = col_msi + 3
+          col_msi = col_msi + 4
           metnames = c(metnames, "NeishabouriCount_x", "NeishabouriCount_y", "NeishabouriCount_z", "NeishabouriCount_vm")
+        }
+        if (params_metrics[["do.osteogenicindex"]] == TRUE) {
+          # there are 32 columns with the bins of the histogram
+          osteo_columns = grep("^osteo", colnames(accmetrics))
+          for (osteo_col in 1:length(osteo_columns)) {
+            metashort[count:(count - 1 + nrow(accmetrics)), col_msi] = accmetrics[, osteo_columns[osteo_col]]
+            col_msi = col_msi + 1
+          }
+          metnames = c(metnames, grep("^osteo", colnames(accmetrics), value = TRUE))
         }
         metnames = gsub(pattern = "angle_", replacement = "angle", x = metnames)
         if (length(myfun) != 0) { # if an external function is applied.
           NcolEF = ncol(OutputExternalFunction) - 1 # number of extra columns needed
           metashort[count:(count - 1 + nrow(OutputExternalFunction)), col_msi:(col_msi + NcolEF)] = as.matrix(OutputExternalFunction); col_msi = col_msi + NcolEF + 1
         }
-        
+
         length_acc_metrics =  length(accmetrics[[1]]) # changing indicator to whatever metric is calculated, EN produces incompatibility when deriving both ENMO and ENMOa
         rm(accmetrics)
         # update blocksize depending on available memory
@@ -568,59 +586,15 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
         blocksize = BlocksizeNew$blocksize
         ##==================================================
         # MODULE 2 - non-wear time & clipping
-        window2 = ws2 * sf #window size in samples
-        window = ws * sf #window size in samples
-        nmin = floor(LD/(window2)) #nmin = minimum number of windows that fit in this block of data
-        CW = NW = matrix(0,nmin,3) #CW is clipping, NW is non-wear
-        TS1W = TS2W = TS3W = TS4W = TS5W = TS6W = TS7W = CWav = NWav = matrix(0, nmin, 1)
-        crit = ((window/window2)/2) + 1
-        for (h in 1:nmin) { #number of windows
-          cliphoc1 = (((h - 1) * window2) + window2 * 0.5 ) - window2 * 0.5 #does not use "window"
-          cliphoc2 = (((h - 1) * window2) + window2 * 0.5 ) + window2 * 0.5
-          if (h <= crit) {
-            hoc1 = 1
-            hoc2 = window
-          } else if (h >= (nmin - crit)) {
-            hoc1 = (nmin - crit)*window2
-            hoc2 = nmin*window2 #end of data
-          } else if (h > crit & h < (nmin - crit)) {
-            hoc1 = (((h - 1) * window2) + window2 * 0.5 ) - window * 0.5
-            hoc2 = (((h - 1) * window2) + window2 * 0.5 ) + window * 0.5
-          }
-          if (length(params_rawdata[["rmc.col.wear"]]) > 0) {
-            wearTable = table(wearcol[(1 + hoc1):hoc2], useNA = FALSE)
-            NWav[h,1] = as.logical(tail(names(sort(wearTable)), 1)) * 3 # times 3 to simulate heuristic approach
-          }
-          for (jj in  1:3) {
-            #hoc1 & hoc2 = edges of windows
-            #window is bigger& window2 is smaller one
-            sdwacc = sd(as.numeric(data[(1 + hoc1):hoc2,jj]), na.rm = TRUE)
-            maxwacc = max(as.numeric(data[(1 + hoc1):hoc2,jj]), na.rm = TRUE)
-            minwacc = min(as.numeric(data[(1 + hoc1):hoc2,jj]), na.rm = TRUE)
-            CW[h,jj] = length(which(abs(as.numeric(data[(1 + cliphoc1):cliphoc2,jj])) > clipthres))
-            if (length(which(abs(as.numeric(data[(1 + cliphoc1):cliphoc2,jj])) > clipthres*1.5)) > 0) {
-              CW[h,jj] = window2 # If there is a a value that is more than 150% the dynamic range then ignore entire block.
-            }
-            absrange = abs(maxwacc - minwacc)
-            if (is.numeric(absrange) == TRUE & is.numeric(sdwacc) == TRUE & is.na(sdwacc) == FALSE) {
-              if (sdwacc < sdcriter) {
-                if (absrange < racriter) {
-                  NW[h,jj] = 1
-                }
-              }
-            } else {
-              NW[h,jj] = 1 # if sdwacc, maxwacc, or minwacc could not be derived then label as non-wear
-            }
-          }
-          CW = CW / (window2) #changed 30-1-2012, was window*sf
-          if (length(params_rawdata[["rmc.col.wear"]]) == 0) {
-            NWav[h,1] = (NW[h,1] + NW[h,2] + NW[h,3]) #indicator of non-wear
-          }
-          CWav[h,1] = max(c(CW[h,1],CW[h,2],CW[h,3])) #indicator of clipping
-        }
+        NWCW = detect_nonwear_clipping(data = data, windowsizes = c(ws3, ws2, ws), sf = sfold,
+                                       clipthres = clipthres, sdcriter = sdcriter, racriter = racriter,
+                                       nonwear_approach = params_general[["nonwear_approach"]],
+                                       params_rawdata = params_rawdata)
+        NWav = NWCW$NWav; CWav = NWCW$CWav; nmin = NWCW$nmin
+        # metalong
         col_mli = 2
-        metalong[count2:((count2 - 1) + nrow(NWav)),col_mli] = NWav; col_mli = col_mli + 1
-        metalong[(count2):((count2 - 1) + nrow(NWav)),col_mli] = CWav; col_mli = col_mli + 1
+        metalong[count2:((count2 - 1) + length(NWav)),col_mli] = NWav; col_mli = col_mli + 1
+        metalong[(count2):((count2 - 1) + length(NWav)),col_mli] = CWav; col_mli = col_mli + 1
         if (mon == 2 | (mon == 4 & dformat == 4) | mon == 5) { #going from sample to ws2
           if (mon == 2 | (mon == 4 & dformat == 4)) {
             #light (running mean)
@@ -651,24 +625,24 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
         ENb = diff(ENc[round(select)]) / abs(diff(round(select)))
         rm(ENc, EN); gc()
         if (mon == 2 | (mon == 4 & dformat == 4)) {
-          metalong[(count2):((count2 - 1) + nrow(NWav)), col_mli] = round(lightmean, digits = n_decimal_places)
+          metalong[(count2):((count2 - 1) + length(NWav)), col_mli] = round(lightmean, digits = n_decimal_places)
           col_mli = col_mli + 1
-          metalong[(count2):((count2 - 1) + nrow(NWav)), col_mli] = round(lightmax, digits = n_decimal_places)
+          metalong[(count2):((count2 - 1) + length(NWav)), col_mli] = round(lightmax, digits = n_decimal_places)
           col_mli = col_mli + 1
-          metalong[(count2):((count2 - 1) + nrow(NWav)), col_mli] = round(temperatureb, digits = n_decimal_places)
+          metalong[(count2):((count2 - 1) + length(NWav)), col_mli] = round(temperatureb, digits = n_decimal_places)
           col_mli = col_mli + 1
         } else if (mon == 5) {
-          metalong[(count2):((count2 - 1) + nrow(NWav)), col_mli] = round(temperatureb, digits = n_decimal_places)
+          metalong[(count2):((count2 - 1) + length(NWav)), col_mli] = round(temperatureb, digits = n_decimal_places)
           col_mli = col_mli + 1
         }
-        metalong[(count2):((count2 - 1) + nrow(NWav)), col_mli] = round(ENb, digits = n_decimal_places)
+        metalong[(count2):((count2 - 1) + length(NWav)), col_mli] = round(ENb, digits = n_decimal_places)
         if (exists("remaining_epochs")) {
           # Impute long gaps at epoch levels, because imputing them at raw level would
           # be too memory hungry
           impute_at_epoch_level = function(gapsize, timeseries, gap_index, metnames) {
             # gap_index: where do gaps occur (epoch indexing)
             # gap_size: how long is gap (epoch numbers)
-            if (any(duplicated(gap_index))) { 
+            if (any(duplicated(gap_index))) {
               # When 2 gap_index are within the same epoch (either short or long)
               # we would have a duplicated gap_index here, then combine information
               dup_index_tmp = which(duplicated(gap_index))
@@ -679,14 +653,14 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
                 delete = to_combine[-1] # leave only the first index and remove duplicates
                 gap_index = gap_index[-delete] # remove from gap index
                 gapsize[to_combine[1]] = sum(gapsize[to_combine]) - (length_to_combine - 1) # minus 1 because it was summed 1 to each gapsize (which is +2 when it is duplicated) in the function call
-                gapsize = gapsize[-delete] 
+                gapsize = gapsize[-delete]
               }
             }
             if ("nonwearscore" %in% metnames) {
               timeseries[gap_index, which(metnames == "nonwearscore")]  = 3
             } else {
               # set all features to zero except time and angle feature
-              timeseries[gap_index, grep(pattern = "time|angle", 
+              timeseries[gap_index, grep(pattern = "time|angle",
                                          x = metnames, invert = TRUE, value = FALSE)] = 0
               # set EN to 1 if it is available
               if ("EN" %in% metnames) timeseries[gap_index, which(metnames == "EN")] = 1
@@ -706,8 +680,8 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
                                              timeseries = metalong,
                                              gap_index = floor(gaps_to_fill / (ws2 * sfold)) + count2, # Using floor so that the gap is filled in the epoch in which it is occurring
                                              metnames = metricnames_long)
-            
             # metashort
+            # added epoch-level nonwear to metashort to get it imputed, then remove it
             metashort = impute_at_epoch_level(gapsize = remaining_epochs[gaps_to_fill], # gapsize in epochs
                                               timeseries = metashort,
                                               gap_index = floor(gaps_to_fill / (ws3 * sfold)) + count, # Using floor so that the gap is filled in the epoch in which it is occurring
@@ -733,7 +707,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
     if (ceiling(daylimit) != FALSE) {
       if (i == ceiling(daylimit)) { #to speed up testing only read first 'i' blocks of data
         LD = 0 #once LD < 1 the analysis stops, so this is a trick to stop it
-        cat(paste0("\nstopped reading data because this analysis is limited to ", ceiling(daylimit), " days\n"))
+        if (verbose == TRUE) cat(paste0("\nstopped reading data because this analysis is limited to ", ceiling(daylimit), " days\n"))
       }
     }
     i = i + 1 #go to next block
@@ -771,7 +745,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
       metalong[, 1] = as.character(time2)
     }
     metricnames_short = c("timestamp", metnames)
-    
+
     # Following code is needed to make sure that algorithms that produce character value
     # output are not assumed to be numeric
     NbasicMetrics = length(metricnames_short)
@@ -784,7 +758,7 @@ g.getmeta = function(datafile, params_metrics = c(), params_rawdata = c(),
     for (ncolms in 2:NbasicMetrics) {
       metashort[,ncolms] = as.numeric(metashort[,ncolms])
     }
-    
+
     metalong = data.frame(A = metalong, stringsAsFactors = FALSE)
     names(metalong) = metricnames_long
     for (ncolml in 2:ncol(metalong)) {
